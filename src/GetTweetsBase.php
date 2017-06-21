@@ -110,13 +110,13 @@ class GetTweetsBase {
 
     if (isset($tweet->entities->user_mentions)) {
       foreach ($tweet->entities->user_mentions as $user_mention) {
-        $node->field_tweet_mentions->appendItem('field_tweet_mentions', $user_mention->screen_name);
+        $node->field_tweet_mentions->appendItem($user_mention->screen_name);
       }
     }
 
     if (isset($tweet->entities->hashtags)) {
       foreach ($tweet->entities->hashtags as $hashtag) {
-        $node->field_tweet_hashtags->appendItem('field_tweet_hashtags', $hashtag->text);
+        $node->field_tweet_hashtags->appendItem($hashtag->text);
       }
     }
 
@@ -125,9 +125,13 @@ class GetTweetsBase {
         if ($media->type == 'photo') {
           $path_info = pathinfo($media->media_url_https);
           $data = file_get_contents($media->media_url_https);
-          $file = file_save_data($data, 'public://tweets/' . $path_info['basename'], FILE_EXISTS_RENAME);
+          $dir = 'public://tweets/';
+          if ($data && file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
+            $file = file_save_data($data, $dir . $path_info['basename'], FILE_EXISTS_RENAME);
           $node->set('field_tweet_local_image', $file);
           $node->set('field_tweet_external_image', $media->media_url);
+          }
+
         }
       }
     }
