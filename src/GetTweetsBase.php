@@ -125,7 +125,7 @@ class GetTweetsBase {
         if ($media->type == 'photo') {
           $path_info = pathinfo($media->media_url_https);
           $data = file_get_contents($media->media_url_https);
-          $file = file_save_data($data, 'public://' . $path_info['basename'], FILE_EXISTS_RENAME);
+          $file = file_save_data($data, 'public://tweets/' . $path_info['basename'], FILE_EXISTS_RENAME);
           $node->set('field_tweet_local_image', $file);
           $node->set('field_tweet_external_image', $media->media_url);
         }
