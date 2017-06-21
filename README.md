@@ -5,7 +5,8 @@ Provides functionality for import tweets in Drupal node.
 
 Installation
 -------------
-This module needs to be installed via Composer, which will download the required libraries.
+This module needs to be installed via Composer, which will download the
+required libraries.
 
 1. Add the Drupal Packagist repository
 
