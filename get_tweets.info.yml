@@ -1,0 +1,9 @@
+name: Get Tweets
+description: Provides functionality for import tweets in Drupal nodes.
+core: 8.x
+package: Social
+type: module
+dependencies:
+  - link
+  - image
+  - node

@@ -1,0 +1,9 @@
+get_tweets.config_form:
+  path: '/admin/config/content/get_tweets'
+  defaults:
+    _title: 'Get Tweets settings'
+    _form: '\Drupal\get_tweets\Form\GetTweetsSettings'
+  requirements:
+    _permission: 'administer content types'
+  options:
+    _admin_route: true

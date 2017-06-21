@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Code for the get_tweets module.
+ */
+
+/**
+ * Implements hook_cron().
+ */
+function get_tweets_cron() {
+  \Drupal::service('get_tweets.base')->runAll();
+}
