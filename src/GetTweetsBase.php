@@ -57,7 +57,7 @@ class GetTweetsBase {
         ];
 
         $query = $storage->getAggregateQuery();
-        $query->condition('field_tweet_author.title', $username);
+        $query->condition('field_tweet_author.title', trim($username, '@'));
         $query->aggregate('field_tweet_id', 'MAX');
         $result = $query->execute();
 
@@ -110,13 +110,13 @@ class GetTweetsBase {
 
     if (isset($tweet->entities->user_mentions)) {
       foreach ($tweet->entities->user_mentions as $user_mention) {
-        $node->set('field_tweet_mentions', $user_mention->screen_name);
+        $node->field_tweet_mentions->appendItem('field_tweet_mentions', $user_mention->screen_name);
       }
     }
 
     if (isset($tweet->entities->hashtags)) {
       foreach ($tweet->entities->hashtags as $hashtag) {
-        $node->set('field_tweet_hashtags', $hashtag->text);
+        $node->field_tweet_hashtags->appendItem('field_tweet_hashtags', $hashtag->text);
       }
     }
 

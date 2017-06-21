@@ -51,6 +51,7 @@ class GetTweetsSettings extends ConfigFormBase {
       '#title' => $this->t('Tweets count'),
       '#default_value' => $config->get('count'),
       '#min' => 1,
+      '#max' => 200,
     ];
 
     $intervals = [604800, 2592000, 7776000, 31536000];
@@ -101,12 +102,18 @@ class GetTweetsSettings extends ConfigFormBase {
     $connection = new TwitterOAuth($config['consumer_key'], $config['consumer_secret']);
 
     foreach ($users as $user) {
-      $connection->get("statuses/user_timeline", ["screen_name" => $user, "count" => 1]);
-      if (isset($connection->getLastBody()->errors)) {
-        $form_state->setErrorByName('usernames', $this->t('Error: "@error" on user: "@user"', [
-          '@error' => $connection->getLastBody()->errors[0]->message,
-          '@user' => $user,
-        ]));
+      $user = trim($user);
+      if (!$user) {
+        $form_state->setErrorByName('usernames', $this->t('Invalid user name.'));
+      }
+      else {
+        $connection->get("statuses/user_timeline", ["screen_name" => trim($user), "count" => 1]);
+        if (isset($connection->getLastBody()->errors)) {
+          $form_state->setErrorByName('usernames', $this->t('Error: "@error" on user: "@user"', [
+            '@error' => $connection->getLastBody()->errors[0]->message,
+            '@user' => $user,
+          ]));
+        }
       }
     }
   }
