@@ -5,6 +5,7 @@ namespace Drupal\get_tweets;
 use Abraham\TwitterOAuth\TwitterOAuth;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal;
 
 /**
  * Class GetTweetsImport.
@@ -68,7 +69,7 @@ class GetTweetsBase {
         $tweets = $connection->get("statuses/user_timeline", $parameters);
 
         if (isset($connection->getLastBody()->errors)) {
-          \Drupal::logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
+          Drupal::logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
         }
 
         if ($tweets) {
@@ -128,8 +129,8 @@ class GetTweetsBase {
           $dir = 'public://tweets/';
           if ($data && file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
             $file = file_save_data($data, $dir . $path_info['basename'], FILE_EXISTS_RENAME);
-          $node->set('field_tweet_local_image', $file);
-          $node->set('field_tweet_external_image', $media->media_url);
+            $node->set('field_tweet_local_image', $file);
+            $node->set('field_tweet_external_image', $media->media_url);
           }
 
         }

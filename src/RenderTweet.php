@@ -67,7 +67,7 @@ class RenderTweet {
       'target' => '_blank',
     ]);
 
-    return $link = Link::fromTextAndUrl($text, $url)->toString();
+    return Link::fromTextAndUrl($text, $url)->toString();
   }
 
   /**

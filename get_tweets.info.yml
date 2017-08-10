@@ -5,6 +5,6 @@ package: Social
 type: module
 configure: get_tweets.config_form
 dependencies:
-  - link
-  - image
-  - node
+  - drupal:link
+  - drupal:image
+  - drupal:node
