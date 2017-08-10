@@ -6,7 +6,6 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Abraham\TwitterOAuth\TwitterOAuth;
 use Drupal\Core\Url;
-use Drupal;
 
 /**
  * Build Get Tweets settings form.
@@ -60,7 +59,7 @@ class GetTweetsSettings extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Delete old statuses'),
       '#default_value' => $config->get('expire'),
-      '#options' => [0 => $this->t('Never')] + array_map([Drupal::service('date.formatter'), 'formatInterval'], array_combine($intervals, $intervals)),
+      '#options' => [0 => $this->t('Never')] + array_map([\Drupal::service('date.formatter'), 'formatInterval'], array_combine($intervals, $intervals)),
     ];
 
     $form['oauth'] = [

@@ -5,7 +5,6 @@ namespace Drupal\get_tweets;
 use Abraham\TwitterOAuth\TwitterOAuth;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal;
 
 /**
  * Class GetTweetsImport.
@@ -69,7 +68,7 @@ class GetTweetsBase {
         $tweets = $connection->get("statuses/user_timeline", $parameters);
 
         if (isset($connection->getLastBody()->errors)) {
-          Drupal::logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
+          \Drupal::logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
         }
 
         if ($tweets) {
