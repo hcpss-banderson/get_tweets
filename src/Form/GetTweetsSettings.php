@@ -2,15 +2,39 @@
 
 namespace Drupal\get_tweets\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Abraham\TwitterOAuth\TwitterOAuth;
 use Drupal\Core\Url;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Build Get Tweets settings form.
  */
 class GetTweetsSettings extends ConfigFormBase {
+  /**
+   * @var \Drupal\core\datetime\DateFormatterInterface $account
+   */
+  protected $dateFormatter;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, $date_formatter) {
+    parent::__construct($config_factory);
+    $this->dateFormatter = $date_formatter;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('date.formatter')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -30,7 +54,7 @@ class GetTweetsSettings extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $config = $this->configFactory->get('get_tweets.settings');
+    $config = $this->config('get_tweets.settings');
 
     $form['import'] = [
       '#type' => 'checkbox',
@@ -59,7 +83,7 @@ class GetTweetsSettings extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Delete old statuses'),
       '#default_value' => $config->get('expire'),
-      '#options' => [0 => $this->t('Never')] + array_map([\Drupal::service('date.formatter'), 'formatInterval'], array_combine($intervals, $intervals)),
+      '#options' => [0 => $this->t('Never')] + array_map([$this->dateFormatter, 'formatInterval'], array_combine($intervals, $intervals)),
     ];
 
     $form['oauth'] = [

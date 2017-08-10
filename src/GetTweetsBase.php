@@ -5,12 +5,19 @@ namespace Drupal\get_tweets;
 use Abraham\TwitterOAuth\TwitterOAuth;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelFactory;
 
 /**
  * Class GetTweetsImport.
  */
 class GetTweetsBase {
 
+  /**
+   * Drupal logger.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelFactory
+   */
+  protected $logger;
   /**
    * The entity manager.
    *
@@ -32,10 +39,13 @@ class GetTweetsBase {
    *   The entity manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
+   * @param \Drupal\Core\Logger\LoggerChannelFactory $logger
+   *   The logger.
    */
-  public function __construct(EntityTypeManagerInterface $entity_manager, ConfigFactoryInterface $config_factory) {
+  public function __construct(EntityTypeManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, LoggerChannelFactory $logger) {
     $this->entityManager = $entity_manager;
     $this->configFactory = $config_factory;
+    $this->logger = $logger;
   }
 
   /**
@@ -68,7 +78,7 @@ class GetTweetsBase {
         $tweets = $connection->get("statuses/user_timeline", $parameters);
 
         if (isset($connection->getLastBody()->errors)) {
-          \Drupal::logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
+          $this->logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
         }
 
         if ($tweets) {
