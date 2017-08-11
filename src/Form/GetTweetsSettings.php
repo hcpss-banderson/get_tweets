@@ -134,8 +134,7 @@ class GetTweetsSettings extends ConfigFormBase {
       if (!$user) {
         $form_state->setErrorByName('usernames', $this->t('Invalid user name.'));
       }
-      // Accept any hashtag.
-      else if (strpos($user, '#') !== 0) {
+      elseif (strpos($user, '#') !== 0) {
         $connection->get("statuses/user_timeline", [
           "screen_name" => trim($user),
           "count" => 1,

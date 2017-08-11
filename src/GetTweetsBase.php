@@ -115,6 +115,10 @@ class GetTweetsBase {
    *
    * @param \stdClass $tweet
    *   Tweet for import.
+   * @param string $tweet_type
+   *   Tweet type.
+   * @param string $query_name
+   *   Query name.
    */
   public function createNode(\stdClass $tweet, $tweet_type = 'username', $query_name = '') {
     $storage = $this->entityManager->getStorage('node');
