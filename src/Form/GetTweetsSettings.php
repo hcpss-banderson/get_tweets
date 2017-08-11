@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class GetTweetsSettings extends ConfigFormBase {
   /**
-   * @var \Drupal\core\datetime\DateFormatterInterface $account
+   * @var \Drupal\core\datetime\DateFormatter $dateFormatter
    */
   protected $dateFormatter;
 
