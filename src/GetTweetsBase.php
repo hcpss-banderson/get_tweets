@@ -84,7 +84,7 @@ class GetTweetsBase {
             ->error($connection->getLastBody()->errors[0]->message);
         }
 
-        if ($tweets) {
+        if ($tweets && empty($tweets->errors)) {
           foreach ($tweets as $tweet) {
             $this->createNode($tweet);
           }
