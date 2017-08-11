@@ -67,9 +67,9 @@ class GetTweetsSettings extends ConfigFormBase {
 
     $form['usernames'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Users for import'),
+      '#title' => $this->t('Users and hashtags for import'),
       '#default_value' => $config->get('usernames'),
-      '#description' => $this->t('Enter users through a space.'),
+      '#description' => $this->t('Enter users or hashtags, separated by a space.'),
       '#required' => TRUE,
     ];
 
@@ -134,7 +134,8 @@ class GetTweetsSettings extends ConfigFormBase {
       if (!$user) {
         $form_state->setErrorByName('usernames', $this->t('Invalid user name.'));
       }
-      else {
+      // Accept any hashtag.
+      else if (strpos($user, '#') !== 0) {
         $connection->get("statuses/user_timeline", [
           "screen_name" => trim($user),
           "count" => 1,

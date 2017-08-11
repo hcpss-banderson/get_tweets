@@ -63,10 +63,22 @@ class GetTweetsBase {
       $storage = $this->entityManager->getStorage('node');
 
       foreach ($config->get('usernames') as $username) {
-        $parameters = [
-          "screen_name" => $username,
-          "count" => $count,
-        ];
+        if (strpos($username, '#') === 0) {
+          $parameters = [
+            "q" => $username,
+            "count" => $count,
+          ];
+          $tweet_type = 'hashtag';
+          $endpoint = 'search/tweets';
+        }
+        else {
+          $parameters = [
+            "screen_name" => $username,
+            "count" => $count,
+          ];
+          $tweet_type = 'username';
+          $endpoint = 'statuses/user_timeline';
+        }
 
         $query = $storage->getAggregateQuery();
         $query->condition('field_tweet_author.title', trim($username, '@'));
@@ -77,16 +89,21 @@ class GetTweetsBase {
           $parameters['since_id'] = $result[0]['field_tweet_id_max'];
         }
 
-        $tweets = $connection->get("statuses/user_timeline", $parameters);
+        $tweets = $connection->get($endpoint, $parameters);
 
         if (isset($connection->getLastBody()->errors)) {
           $this->logger('get_tweets')
             ->error($connection->getLastBody()->errors[0]->message);
         }
 
+        // If we're pulling by hashtag, we need to access the statuses.
+        if ($endpoint == 'search/tweets') {
+          $tweets = $tweets->statuses;
+        }
+
         if ($tweets && empty($tweets->errors)) {
           foreach ($tweets as $tweet) {
-            $this->createNode($tweet);
+            $this->createNode($tweet, $tweet_type, $username);
           }
         }
       }
@@ -99,7 +116,7 @@ class GetTweetsBase {
    * @param \stdClass $tweet
    *   Tweet for import.
    */
-  public function createNode(\stdClass $tweet) {
+  public function createNode(\stdClass $tweet, $tweet_type = 'username', $query_name = '') {
     $storage = $this->entityManager->getStorage('node');
     $render_tweet = new RenderTweet($tweet);
 
@@ -108,8 +125,8 @@ class GetTweetsBase {
       'type' => 'tweet',
       'field_tweet_id' => $tweet->id,
       'field_tweet_author' => [
-        'uri' => 'https://twitter.com/' . $tweet->user->screen_name,
-        'title' => $tweet->user->screen_name,
+        'uri' => $tweet_type == 'username' ? 'https://twitter.com/' . $tweet->user->screen_name : 'https://twitter.com/search?q=' . str_replace('#', '%23', $query_name),
+        'title' => $tweet_type == 'username' ? $tweet->user->screen_name : $query_name,
       ],
       'title' => 'Tweet #' . $tweet->id,
       'field_tweet_content' => [
