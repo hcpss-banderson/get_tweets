@@ -15,7 +15,7 @@ class GetTweetsBase {
   /**
    * Drupal logger.
    *
-   * @var \Drupal\Core\Logger\LoggerChannelFactory $logger
+   * @var \Drupal\Core\Logger\LoggerChannelFactory
    */
 
   protected $logger;

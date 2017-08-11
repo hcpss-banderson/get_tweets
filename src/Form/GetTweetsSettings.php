@@ -15,7 +15,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class GetTweetsSettings extends ConfigFormBase {
 
   /**
-   * @var \Drupal\core\datetime\DateFormatter $dateFormatter
+   * Date formatter.
+   *
+   * @var \Drupal\core\datetime\DateFormatter
    */
   protected $dateFormatter;
 
@@ -84,10 +86,7 @@ class GetTweetsSettings extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Delete old statuses'),
       '#default_value' => $config->get('expire'),
-      '#options' => [0 => $this->t('Never')] + array_map([
-          $this->dateFormatter,
-          'formatInterval',
-        ], array_combine($intervals, $intervals)),
+      '#options' => [0 => $this->t('Never')] + array_map([$this->dateFormatter,'formatInterval'], array_combine($intervals, $intervals)),
     ];
 
     $form['oauth'] = [
