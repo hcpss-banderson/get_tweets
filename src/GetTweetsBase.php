@@ -15,9 +15,11 @@ class GetTweetsBase {
   /**
    * Drupal logger.
    *
-   * @var \Drupal\Core\Logger\LoggerChannelFactory
+   * @var \Drupal\Core\Logger\LoggerChannelFactory $logger
    */
+
   protected $logger;
+
   /**
    * The entity manager.
    *
@@ -78,7 +80,8 @@ class GetTweetsBase {
         $tweets = $connection->get("statuses/user_timeline", $parameters);
 
         if (isset($connection->getLastBody()->errors)) {
-          $this->logger('get_tweets')->error($connection->getLastBody()->errors[0]->message);
+          $this->logger('get_tweets')
+            ->error($connection->getLastBody()->errors[0]->message);
         }
 
         if ($tweets) {

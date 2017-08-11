@@ -13,6 +13,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Build Get Tweets settings form.
  */
 class GetTweetsSettings extends ConfigFormBase {
+
   /**
    * @var \Drupal\core\datetime\DateFormatter $dateFormatter
    */
@@ -83,7 +84,10 @@ class GetTweetsSettings extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Delete old statuses'),
       '#default_value' => $config->get('expire'),
-      '#options' => [0 => $this->t('Never')] + array_map([$this->dateFormatter, 'formatInterval'], array_combine($intervals, $intervals)),
+      '#options' => [0 => $this->t('Never')] + array_map([
+          $this->dateFormatter,
+          'formatInterval',
+        ], array_combine($intervals, $intervals)),
     ];
 
     $form['oauth'] = [
@@ -95,7 +99,8 @@ class GetTweetsSettings extends ConfigFormBase {
     $form['oauth']['callback_url'] = [
       '#type' => 'item',
       '#title' => $this->t('Callback URL'),
-      '#markup' => Url::fromUri('base:twitter/oauth', ['absolute' => TRUE])->toString(),
+      '#markup' => Url::fromUri('base:twitter/oauth', ['absolute' => TRUE])
+        ->toString(),
     ];
 
     $form['oauth']['consumer_key'] = [
@@ -131,7 +136,10 @@ class GetTweetsSettings extends ConfigFormBase {
         $form_state->setErrorByName('usernames', $this->t('Invalid user name.'));
       }
       else {
-        $connection->get("statuses/user_timeline", ["screen_name" => trim($user), "count" => 1]);
+        $connection->get("statuses/user_timeline", [
+          "screen_name" => trim($user),
+          "count" => 1,
+        ]);
         if (isset($connection->getLastBody()->errors)) {
           $form_state->setErrorByName('usernames', $this->t('Error: "@error" on user: "@user"', [
             '@error' => $connection->getLastBody()->errors[0]->message,
