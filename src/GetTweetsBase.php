@@ -56,55 +56,57 @@ class GetTweetsBase {
   public function import() {
     $config = $this->configFactory->get('get_tweets.settings');
 
-    if ($config->get('import')) {
-      $connection = new TwitterOAuth($config->get('consumer_key'), $config->get('consumer_secret'));
+    if (!$config->get('import')) {
+      return;
+    }
 
-      $count = $config->get('count');
-      $storage = $this->entityManager->getStorage('node');
+    $connection = new TwitterOAuth($config->get('consumer_key'), $config->get('consumer_secret'));
 
-      foreach ($config->get('usernames') as $username) {
-        if (strpos($username, '#') === 0) {
-          $parameters = [
-            "q" => $username,
-            "count" => $count,
-          ];
-          $tweet_type = 'hashtag';
-          $endpoint = 'search/tweets';
-        }
-        else {
-          $parameters = [
-            "screen_name" => $username,
-            "count" => $count,
-          ];
-          $tweet_type = 'username';
-          $endpoint = 'statuses/user_timeline';
-        }
+    $count = $config->get('count');
+    $storage = $this->entityManager->getStorage('node');
 
-        $query = $storage->getAggregateQuery();
-        $query->condition('field_tweet_author.title', trim($username, '@'));
-        $query->aggregate('field_tweet_id', 'MAX');
-        $result = $query->execute();
+    foreach ($config->get('usernames') as $username) {
+      if (strpos($username, '#') == 0) {
+        $parameters = [
+          "q" => $username,
+          "count" => $count,
+        ];
+        $tweet_type = 'hashtag';
+        $endpoint = 'search/tweets';
+      }
+      else {
+        $parameters = [
+          "screen_name" => $username,
+          "count" => $count,
+        ];
+        $tweet_type = 'username';
+        $endpoint = 'statuses/user_timeline';
+      }
 
-        if (isset($result[0]['field_tweet_id_max'])) {
-          $parameters['since_id'] = $result[0]['field_tweet_id_max'];
-        }
+      $query = $storage->getAggregateQuery();
+      $query->condition('field_tweet_author.title', trim($username, '@'));
+      $query->aggregate('field_tweet_id', 'MAX');
+      $result = $query->execute();
 
-        $tweets = $connection->get($endpoint, $parameters);
+      if (isset($result[0]['field_tweet_id_max'])) {
+        $parameters['since_id'] = $result[0]['field_tweet_id_max'];
+      }
 
-        if (isset($connection->getLastBody()->errors)) {
-          $this->logger('get_tweets')
-            ->error($connection->getLastBody()->errors[0]->message);
-        }
+      $tweets = $connection->get($endpoint, $parameters);
 
-        // If we're pulling by hashtag, we need to access the statuses.
-        if ($endpoint == 'search/tweets') {
-          $tweets = $tweets->statuses;
-        }
+      if (isset($connection->getLastBody()->errors)) {
+        $this->logger('get_tweets')
+          ->error($connection->getLastBody()->errors[0]->message);
+      }
 
-        if ($tweets && empty($tweets->errors)) {
-          foreach ($tweets as $tweet) {
-            $this->createNode($tweet, $tweet_type, $username);
-          }
+      // If we're pulling by hashtag, we need to access the statuses.
+      if ($endpoint == 'search/tweets') {
+        $tweets = $tweets->statuses;
+      }
+
+      if ($tweets && empty($tweets->errors)) {
+        foreach ($tweets as $tweet) {
+          $this->createNode($tweet, $tweet_type, $username);
         }
       }
     }
@@ -165,7 +167,6 @@ class GetTweetsBase {
             $node->set('field_tweet_local_image', $file);
             $node->set('field_tweet_external_image', $media->media_url);
           }
-
         }
       }
     }
@@ -187,17 +188,19 @@ class GetTweetsBase {
     $config = $this->configFactory->get('get_tweets.settings');
     $expire = $config->get('expire');
 
-    if ($expire) {
-      $storage = $this->entityManager->getStorage('node');
-      $query = $storage->getQuery();
-      $query->condition('created', time() - $expire, '<');
-      $query->condition('type', 'tweets');
-      $result = $query->execute();
-      $nodes = $storage->loadMultiple($result);
+    if (!$expire) {
+      return;
+    }
 
-      foreach ($nodes as $node) {
-        $node->delete();
-      }
+    $storage = $this->entityManager->getStorage('node');
+    $query = $storage->getQuery();
+    $query->condition('created', time() - $expire, '<');
+    $query->condition('type', 'tweets');
+    $result = $query->execute();
+    $nodes = $storage->loadMultiple($result);
+
+    foreach ($nodes as $node) {
+      $node->delete();
     }
   }
 
