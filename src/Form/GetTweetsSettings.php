@@ -97,7 +97,7 @@ class GetTweetsSettings extends ConfigFormBase {
 
     $form['oauth']['callback_url'] = [
       '#type' => 'item',
-      '#title' => $this->t('Callback URL'),URL
+      '#title' => $this->t('Callback URL'),
       '#markup' => Url::fromUri('base:twitter/oauth', ['absolute' => TRUE])
         ->toString(),
     ];
