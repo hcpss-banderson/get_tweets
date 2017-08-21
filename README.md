@@ -1,29 +1,24 @@
 Get Tweets
 ======
 
-Provides functionality for import tweets in Drupal node.
+This module provides import tweets through Twitter 
+API by Cron for Drupal 8.
 
-Installation
+Registration with Twitter:
 -------------
-This module needs to be installed via Composer, which will download the
-required libraries.
+Before you start the installation process you must register on Twitter and create your own application.
+You will get "Consumer Key", "Consumer Secret".
 
-1. Add the Drupal Packagist repository
+Requirements:
+-------------
+PHP versions listed as "active support" or "security fixes only"
+are supported.
 
-    ```sh
-    composer config repositories.drupal composer https://packages.drupal.org/8
-    ```
-This allows Composer to find Get Tweets and the other Drupal modules.
-
-2. Download Get Tweets
-
-   ```sh
-   composer require "drupal/get_tweets"
-   ```
-This will download the latest release of Get Tweets.
-Use 1.x-dev to get the -dev release instead.
-
-3. Config your credential for Twitter application.
-
+Installation:
+-------------
+1. Download the module via Composer(composer require drupal/get_tweets);
+2. Enable it;
+3. Go to /admin/config/content/get_tweets and set your credentials;
+4. Done. Your tweets are now importing in nodes.
 
 See https://www.drupal.org/node/2404989 for more information.
