@@ -18,10 +18,10 @@ This allows Composer to find Get Tweets and the other Drupal modules.
 2. Download Get Tweets
 
    ```sh
-   composer require "drupal/get_tweets ~1.0"
+   composer require "drupal/get_tweets"
    ```
 This will download the latest release of Get Tweets.
-Use 1.x-dev instead of ~1.0 to get the -dev release instead.
+Use 1.x-dev to get the -dev release instead.
 
 3. Config your credential for Twitter application.
 
