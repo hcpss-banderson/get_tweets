@@ -92,7 +92,7 @@ class GetTweetsSettings extends ConfigFormBase {
     $form['oauth'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('OAuth Settings'),
-      '#description' => $this->t('To enable OAuth based access for twitter, you must <a href="@url">register your application</a> with Twitter and add the provided keys here.', ['@url' => 'https://dev.twitter.com/apps/new']),
+      '#description' => $this->t('To enable OAuth based access for twitter, you must <a href="@url">register your application</a> with Twitter and add the provided keys here.', ['@url' => 'https://apps.twitter.com/apps/new']),
     ];
 
     $form['oauth']['callback_url'] = [
