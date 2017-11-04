@@ -2,14 +2,10 @@
 
 namespace Drupal\get_tweets\Form;
 
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\BeforeCommand;
-use Drupal\Core\Ajax\PrependCommand;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Abraham\TwitterOAuth\TwitterOAuth;
-use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -128,9 +124,9 @@ class GetTweetsSettings extends ConfigFormBase {
       '#title' => $this->t('Delete old statuses'),
       '#default_value' => $config->get('expire'),
       '#options' => [0 => $this->t('Never')] + array_map([
-          $this->dateFormatter,
-          'formatInterval',
-        ], array_combine($intervals, $intervals)),
+        $this->dateFormatter,
+        'formatInterval',
+      ], array_combine($intervals, $intervals)),
     ];
 
     $form['oauth'] = [
@@ -258,7 +254,7 @@ class GetTweetsSettings extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->cleanValues()->getValues();
 
-    foreach ($values['queries'] as $key => &$query) {
+    foreach ($values['queries'] as &$query) {
       if (strpos($query['query'], '@') === 0) {
         $query['endpoint'] = 'statuses/user_timeline';
         $query['parameter'] = 'screen_name';
