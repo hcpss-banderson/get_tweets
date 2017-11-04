@@ -21,18 +21,25 @@ class GetTweetsBase {
   protected $logger;
 
   /**
-   * The entity manager.
+   * The node storage.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * @var \Drupal\node\NodeStorage
    */
-  protected $entityManager;
+  protected $nodeStorage;
 
   /**
-   * The config factory.
+   * The GetTweets settings.
+   *
+   * @var \Drupal\Core\Config\ConfigInterface
+   */
+  protected $getTweetsSettings;
+
+  /**
+   * Twitter connection object.
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
-  protected $configFactory;
+  protected $connection;
 
   /**
    * Constructs a GetTweetsBase object.
@@ -45,48 +52,63 @@ class GetTweetsBase {
    *   The logger.
    */
   public function __construct(EntityTypeManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, LoggerChannelFactory $logger) {
-    $this->entityManager = $entity_manager;
-    $this->configFactory = $config_factory;
-    $this->logger = $logger;
+    $this->nodeStorage = $entity_manager->getStorage('node');
+    $this->getTweetsSettings = $config_factory->get('get_tweets.settings');
+    $this->logger = $logger->get('get_tweets');
+  }
+
+  /**
+   * Returns TwitterOAuth object or null.
+   *
+   * @param string $consumer_key
+   *   The Application Consumer Key.
+   * @param string $consumer_secret
+   *   The Application Consumer Secret.
+   * @param string|null $oauth_token
+   *   The Client Token (optional).
+   * @param string|null $oauth_token_secret
+   *   The Client Token Secret (optional).
+   *
+   * @return \Abraham\TwitterOAuth\TwitterOAuth|null
+   *   Returns TwitterOAuth object or null.
+   */
+  public function getConnection($consumer_key, $consumer_secret, $oauth_token = NULL, $oauth_token_secret = NULL) {
+    $connection = new TwitterOAuth($consumer_key, $consumer_secret, $oauth_token, $oauth_token_secret);
+
+    if ($connection) {
+      return $connection;
+    }
+
+    return NULL;
   }
 
   /**
    * Import tweets.
    */
   public function import() {
-    $config = $this->configFactory->get('get_tweets.settings');
+    $config = $this->getTweetsSettings;
+    $connection = $this->getConnection($config->get('consumer_key'), $config->get('consumer_secret'), $config->get('oauth_token'), $config->get('oauth_token_secret'));
 
-    if (!$config->get('import')) {
+    if (!$config->get('import') && !$connection) {
       return;
     }
 
-    $connection = new TwitterOAuth($config->get('consumer_key'), $config->get('consumer_secret'));
-
     $count = $config->get('count');
-    $storage = $this->entityManager->getStorage('node');
 
-    foreach ($config->get('usernames') as $username) {
-      if (strpos($username, '#') == 0) {
-        $parameters = [
-          "q" => $username,
-          "count" => $count,
-        ];
-        $tweet_type = 'hashtag';
-        $endpoint = 'search/tweets';
-      }
-      else {
-        $parameters = [
-          "screen_name" => $username,
-          "count" => $count,
-        ];
-        $tweet_type = 'username';
-        $endpoint = 'statuses/user_timeline';
-      }
+    foreach ($config->get('queries') as $query) {
+      $parameters = [
+        $query['parameter'] => $query['query'],
+        "count" => $count,
+        "tweet_mode" => 'extended',
+        "include_entities" => TRUE,
+      ];
 
-      $query = $storage->getAggregateQuery();
-      $query->condition('field_tweet_author.title', trim($username, '@'));
-      $query->aggregate('field_tweet_id', 'MAX');
-      $result = $query->execute();
+      $endpoint = $query['endpoint'];
+
+      $max_id_query = $this->nodeStorage->getAggregateQuery();
+      $max_id_query->condition('field_tweet_author.title', trim($query['query'], '@'));
+      $max_id_query->aggregate('field_tweet_id', 'MAX');
+      $result = $max_id_query->execute();
 
       if (isset($result[0]['field_tweet_id_max'])) {
         $parameters['since_id'] = $result[0]['field_tweet_id_max'];
@@ -95,18 +117,17 @@ class GetTweetsBase {
       $tweets = $connection->get($endpoint, $parameters);
 
       if (isset($connection->getLastBody()->errors)) {
-        $this->logger('get_tweets')
-          ->error($connection->getLastBody()->errors[0]->message);
+        $this->logger->error($connection->getLastBody()->errors[0]->message);
+        return;
       }
 
-      // If we're pulling by hashtag, we need to access the statuses.
       if ($endpoint == 'search/tweets') {
         $tweets = $tweets->statuses;
       }
 
       if ($tweets && empty($tweets->errors)) {
         foreach ($tweets as $tweet) {
-          $this->createNode($tweet, $tweet_type, $username);
+          $this->createNode($tweet, $endpoint, $query['query']);
         }
       }
     }
@@ -122,17 +143,16 @@ class GetTweetsBase {
    * @param string $query_name
    *   Query name.
    */
-  public function createNode(\stdClass $tweet, $tweet_type = 'username', $query_name = '') {
-    $storage = $this->entityManager->getStorage('node');
+  public function createNode(\stdClass $tweet, $tweet_type = 'statuses/user_timeline', $query_name = '') {
     $render_tweet = new RenderTweet($tweet);
 
     /** @var \Drupal\node\NodeInterface $node */
-    $node = $storage->create([
+    $node = $this->nodeStorage->create([
       'type' => 'tweet',
       'field_tweet_id' => $tweet->id,
       'field_tweet_author' => [
-        'uri' => $tweet_type == 'username' ? 'https://twitter.com/' . $tweet->user->screen_name : 'https://twitter.com/search?q=' . str_replace('#', '%23', $query_name),
-        'title' => $tweet_type == 'username' ? $tweet->user->screen_name : $query_name,
+        'uri' => $tweet_type == 'statuses/user_timeline' ? 'https://twitter.com/' . $tweet->user->screen_name : 'https://twitter.com/search?q=' . str_replace('#', '%23', $query_name),
+        'title' => $tweet_type == 'statuses/user_timeline' ? $tweet->user->screen_name : $query_name,
       ],
       'title' => 'Tweet #' . $tweet->id,
       'field_tweet_content' => [
@@ -159,13 +179,13 @@ class GetTweetsBase {
     if (isset($tweet->entities->media)) {
       foreach ($tweet->entities->media as $media) {
         if ($media->type == 'photo') {
+          $node->set('field_tweet_external_image', $media->media_url);
           $path_info = pathinfo($media->media_url_https);
           $data = file_get_contents($media->media_url_https);
           $dir = 'public://tweets/';
           if ($data && file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
             $file = file_save_data($data, $dir . $path_info['basename'], FILE_EXISTS_RENAME);
             $node->set('field_tweet_local_image', $file);
-            $node->set('field_tweet_external_image', $media->media_url);
           }
         }
       }
@@ -185,14 +205,14 @@ class GetTweetsBase {
    * Delete old tweets.
    */
   public function cleanup() {
-    $config = $this->configFactory->get('get_tweets.settings');
+    $config = $this->getTweetsSettings;
     $expire = $config->get('expire');
 
     if (!$expire) {
       return;
     }
 
-    $storage = $this->entityManager->getStorage('node');
+    $storage = $this->nodeStorage;
     $query = $storage->getQuery();
     $query->condition('created', time() - $expire, '<');
     $query->condition('type', 'tweets');
