@@ -2,6 +2,9 @@
 
 namespace Drupal\get_tweets\Form;
 
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\BeforeCommand;
+use Drupal\Core\Ajax\PrependCommand;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -58,6 +61,12 @@ class GetTweetsSettings extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('get_tweets.settings');
+    $queries = $config->get('queries');
+
+    if ($queries === NULL || $form_state->get('queries')) {
+      $queries = $form_state->get('queries') ? $form_state->get('queries') : [['query' => '']];
+    }
+    $form_state->set('queries', $queries);
 
     $form['import'] = [
       '#type' => 'checkbox',
@@ -65,12 +74,44 @@ class GetTweetsSettings extends ConfigFormBase {
       '#default_value' => $config->get('import'),
     ];
 
-    $form['usernames'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Users and hashtags for import'),
-      '#default_value' => $config->get('usernames'),
-      '#description' => $this->t('Enter users or hashtags, separated by a space.'),
-      '#required' => TRUE,
+    $form['queries'] = [
+      '#type' => 'table',
+      '#tree' => TRUE,
+      '#header' => [$this->t('Query'), $this->t('Operations')],
+      '#title' => $this->t('Search Queries'),
+      '#description' => $this->t('Input your search queries here.'),
+      '#prefix' => '<div id="queries-table-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    foreach ($queries as $key => $value) {
+      $form['queries'][$key]['query'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Query'),
+        '#default_value' => $value['query'],
+      ];
+
+      $form['queries'][$key]['remove_query-' . $key] = [
+        '#type' => 'submit',
+        '#name' => 'remove-query-' . $key,
+        '#value' => $this->t('Remove'),
+        '#limit_validation_errors' => [],
+        '#submit' => [[$this, 'removeCallback']],
+        '#ajax' => [
+          'callback' => [$this, 'queries'],
+          'wrapper' => 'queries-table-wrapper',
+        ],
+      ];
+    }
+
+    $form['add_more'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add More'),
+      '#submit' => [[$this, 'addMore']],
+      '#ajax' => [
+        'callback' => [$this, 'queries'],
+        'wrapper' => 'queries-table-wrapper',
+      ],
     ];
 
     $form['count'] = [
@@ -86,20 +127,16 @@ class GetTweetsSettings extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('Delete old statuses'),
       '#default_value' => $config->get('expire'),
-      '#options' => [0 => $this->t('Never')] + array_map([$this->dateFormatter, 'formatInterval'], array_combine($intervals, $intervals)),
+      '#options' => [0 => $this->t('Never')] + array_map([
+          $this->dateFormatter,
+          'formatInterval',
+        ], array_combine($intervals, $intervals)),
     ];
 
     $form['oauth'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('OAuth Settings'),
       '#description' => $this->t('To enable OAuth based access for twitter, you must <a href="@url">register your application</a> with Twitter and add the provided keys here.', ['@url' => 'https://apps.twitter.com/apps/new']),
-    ];
-
-    $form['oauth']['callback_url'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Callback URL'),
-      '#markup' => Url::fromUri('base:twitter/oauth', ['absolute' => TRUE])
-        ->toString(),
     ];
 
     $form['oauth']['consumer_key'] = [
@@ -116,35 +153,101 @@ class GetTweetsSettings extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
+    $form['oauth']['oauth_token'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Access Token'),
+      '#default_value' => $config->get('oauth_token'),
+    ];
+
+    $form['oauth']['oauth_token_secret'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Access Token Secret'),
+      '#default_value' => $config->get('oauth_token_secret'),
+    ];
+    $form_state->setCached(FALSE);
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * Callback for adding more queries.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  public function addMore(array &$form, FormStateInterface $form_state) {
+    $form_state->setRebuild(TRUE);
+    $queries = $form_state->get('queries');
+    array_push($queries, ['query' => '']);
+    $form_state->set('queries', $queries);
+  }
+
+  /**
+   * Callback for remove query.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  public function removeCallback(array &$form, FormStateInterface $form_state) {
+    $form_state->setRebuild(TRUE);
+    $queries = $form_state->get('queries');
+    $triggered_element = $form_state->getTriggeringElement();
+    unset($queries[$triggered_element['#parents'][1]]);
+    $form_state->set('queries', $queries);
+  }
+
+  /**
+   * Callback for queries.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   *
+   * @return array
+   *   Render array for queries.
+   */
+  public function queries(array &$form, FormStateInterface $form_state) {
+    return $form['queries'];
   }
 
   /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $config = $form_state->cleanValues()->getValues();
-    $users = trim($config['usernames']);
-    $users = explode(' ', $users);
+    $values = $form_state->cleanValues()->getValues();
+    $queries = $values['queries'];
 
-    $connection = new TwitterOAuth($config['consumer_key'], $config['consumer_secret']);
+    $connection = new TwitterOAuth($values['consumer_key'], $values['consumer_secret'], $values['oauth_token'], $values['oauth_token_secret']);
 
-    foreach ($users as $user) {
-      $user = trim($user);
-      if (!$user) {
-        $form_state->setErrorByName('usernames', $this->t('Invalid user name.'));
+    foreach ($queries as $query) {
+      $query = trim($query['query']);
+
+      if (!$query) {
+        return;
       }
-      elseif (strpos($user, '#') !== 0) {
+
+      if (strpos($query, '@') === 0) {
         $connection->get("statuses/user_timeline", [
-          "screen_name" => trim($user),
+          "screen_name" => $query,
           "count" => 1,
         ]);
-        if (isset($connection->getLastBody()->errors)) {
-          $form_state->setErrorByName('usernames', $this->t('Error: "@error" on user: "@user"', [
-            '@error' => $connection->getLastBody()->errors[0]->message,
-            '@user' => $user,
-          ]));
-        }
+      }
+      else {
+        $connection->get("search/tweets", [
+          "q" => $query,
+          "count" => 1,
+        ]);
+      }
+
+      if (isset($connection->getLastBody()->errors)) {
+        $form_state->setErrorByName('queries', $this->t('Error: "@error" on query: "@query"', [
+          '@error' => $connection->getLastBody()->errors[0]->message,
+          '@query' => $query,
+        ]));
       }
     }
   }
@@ -155,8 +258,16 @@ class GetTweetsSettings extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->cleanValues()->getValues();
 
-    $values['usernames'] = trim($values['usernames']);
-    $values['usernames'] = explode(' ', $values['usernames']);
+    foreach ($values['queries'] as $key => &$query) {
+      if (strpos($query['query'], '@') === 0) {
+        $query['endpoint'] = 'statuses/user_timeline';
+        $query['parameter'] = 'screen_name';
+      }
+      else {
+        $query['endpoint'] = 'search/tweets';
+        $query['parameter'] = 'q';
+      }
+    }
 
     $this->config('get_tweets.settings')
       ->setData($values)
