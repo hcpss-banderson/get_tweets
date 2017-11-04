@@ -6,7 +6,8 @@ API by Cron for Drupal 8.
 
 Registration with Twitter:
 -------------
-Before you start the installation process you must register on Twitter and create your own application.
+Before you start the installation process you must register on
+Twitter and create your own application.
 You will get "Consumer Key", "Consumer Secret".
 
 Requirements:
