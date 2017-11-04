@@ -32,7 +32,7 @@ class RenderTweet {
    */
   public function __construct(\stdClass $tweet) {
     $this->tweet = $tweet;
-    $this->content = $tweet->text;
+    $this->content = $tweet->full_text;
   }
 
   /**
