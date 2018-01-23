@@ -190,7 +190,60 @@ class GetTweetsBase {
         }
       }
     }
+
+    if (isset($tweet->retweeted_status)) {
+      if (isset($tweet->retweeted_status->entities->user_mentions)) {
+        foreach ($tweet->retweeted_status->entities->user_mentions as $user_mention) {
+          if (!self::check_duplicate_users($node->field_tweet_mentions,$user_mention->screen_name)) {
+            $node->field_tweet_mentions->appendItem($user_mention->screen_name);
+          }
+        }
+      }
+      if (isset($tweet->retweeted_status->entities->hashtags)) {
+        foreach ($tweet->retweeted_status->entities->hashtags as $hashtag) {
+          if (!self::check_duplicate_hashtags($node->field_tweet_hashtags,$hashtag->text)) {
+            $node->field_tweet_hashtags->appendItem($hashtag->text);
+          }
+        }
+      }
+      if (isset($tweet->retweeted_status->entities->media)) {
+        foreach ($tweet->retweeted_status->entities->media as $media) {
+          if ($media->type == 'photo') {
+            $node->set('field_tweet_external_image', $media->media_url);
+            $path_info = pathinfo($media->media_url_https);
+            $data = file_get_contents($media->media_url_https);
+            $dir = 'public://tweets/';
+            if ($data && file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
+              $file = file_save_data($data, $dir . $path_info['basename'], FILE_EXISTS_RENAME);
+              $node->set('field_tweet_local_image', $file);
+            }
+          }
+        }
+      }
+    }
+
     $node->save();
+  }
+
+  /**
+   * Check if user_mention or hashtag already exists. 
+   */
+  public function check_duplicate_users($users,$tweetuser) {
+    foreach($users AS $user) {
+      if ($user == $tweetuser) {
+         return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  public function check_duplicate_hashtags($hashtags,$tweethash) {
+    foreach($hashtags AS $hashtag) {
+      if ($hashtag == $tweethash) {
+         return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**

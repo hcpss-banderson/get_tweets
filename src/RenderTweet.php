@@ -33,6 +33,9 @@ class RenderTweet {
   public function __construct(\stdClass $tweet) {
     $this->tweet = $tweet;
     $this->content = $tweet->full_text;
+    if (isset($tweet->retweeted_status)) {
+       $this->content = 'RT @'.$tweet->retweeted_status->user->screen_name.': '.$tweet->retweeted_status->full_text;
+    }
   }
 
   /**
@@ -42,11 +45,18 @@ class RenderTweet {
    *   Rendered tweet.
    */
   public function build() {
+    // Does not take into account media, hashtags, user_mentions or URLs of retweets
     !isset($this->tweet->entities->media) ?: $this->replaceMedia();
     !isset($this->tweet->entities->hashtags) ?: $this->replaceTags();
     !isset($this->tweet->entities->user_mentions) ?: $this->replaceUsers();
     !isset($this->tweet->entities->urls) ?: $this->replaceUrls();
 
+    if (isset($this->tweet->retweeted_status)) {
+      !isset($this->tweet->retweeted_status->entities->media) ?: $this->replaceRetweetMedia();
+      !isset($this->tweet->retweeted_status->entities->hashtags) ?: $this->replaceRetweetTags();
+      !isset($this->tweet->retweeted_status->entities->user_mentions) ?: $this->replaceRetweetUsers();
+      !isset($this->tweet->retweeted_status->entities->urls) ?: $this->replaceRetweetUrls();
+    }
     return $this->content;
   }
 
@@ -96,10 +106,35 @@ class RenderTweet {
   }
 
   /**
+   * Replace retweet hashtags
+   */
+
+  private function replaceRetweetTags() {
+    foreach ($this->tweet->retweeted_status->entities->hashtags as $hashtag) {
+      $this->entityReplace(
+        "#" . $hashtag->text,
+        "https://twitter.com/hashtag/" . $hashtag->text
+      );
+    }
+  }
+
+  /**
    * Replace users.
    */
   private function replaceUsers() {
     foreach ($this->tweet->entities->user_mentions as $user) {
+      $this->entityReplace(
+        "@" . $user->screen_name,
+        "https://twitter.com/" . $user->screen_name
+      );
+    }
+  }
+
+  /**
+   * Replace retweeted users.
+   */
+  private function replaceRetweetUsers() {
+    foreach ($this->tweet->retweeted_status->entities->user_mentions as $user) {
       $this->entityReplace(
         "@" . $user->screen_name,
         "https://twitter.com/" . $user->screen_name
@@ -120,6 +155,18 @@ class RenderTweet {
   }
 
   /**
+   * Replace retweeted urls.
+   */
+  private function replaceRetweetUrls() {
+    foreach ($this->tweet->retweeted_status->entities->urls as $url_value) {
+      $this->entityReplace(
+        $url_value->url,
+        $url_value->url 
+      );
+    }
+  }
+
+  /**
    * Replace media.
    */
   private function replaceMedia() {
@@ -131,4 +178,15 @@ class RenderTweet {
     }
   }
 
+  /**
+   * Replace retweeted media.
+   */
+  private function replaceRetweetMedia() {
+    foreach ($this->tweet->retweeted_status->entities->media as $url_value) {
+      $this->entityReplace(
+        $url_value->url,
+        $url_value->url 
+      );
+    }
+  }
 }
