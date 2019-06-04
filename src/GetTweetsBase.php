@@ -268,7 +268,7 @@ class GetTweetsBase {
     $storage = $this->nodeStorage;
     $query = $storage->getQuery();
     $query->condition('created', time() - $expire, '<');
-    $query->condition('type', 'tweets');
+    $query->condition('type', 'tweet');
     $result = $query->execute();
     $nodes = $storage->loadMultiple($result);
 
