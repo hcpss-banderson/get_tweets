@@ -5,7 +5,7 @@ namespace Drupal\get_tweets;
 use Abraham\TwitterOAuth\TwitterOAuth;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Logger\LoggerChannelFactory;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
 /**
  * Class GetTweetsImport.
@@ -15,7 +15,7 @@ class GetTweetsBase {
   /**
    * Drupal logger.
    *
-   * @var \Drupal\Core\Logger\LoggerChannelFactory
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
    */
 
   protected $logger;
@@ -48,10 +48,10 @@ class GetTweetsBase {
    *   The entity manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
-   * @param \Drupal\Core\Logger\LoggerChannelFactory $logger
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger
    *   The logger.
    */
-  public function __construct(EntityTypeManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, LoggerChannelFactory $logger) {
+  public function __construct(EntityTypeManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger) {
     $this->nodeStorage = $entity_manager->getStorage('node');
     $this->getTweetsSettings = $config_factory->get('get_tweets.settings');
     $this->logger = $logger->get('get_tweets');
