@@ -127,7 +127,14 @@ class GetTweetsBase {
 
       if ($tweets && empty($tweets->errors)) {
         foreach ($tweets as $tweet) {
-          $this->createNode($tweet, $endpoint, $query['query']);
+          $nids = $this->nodeStorage->getQuery()
+            ->condition('field_tweet_id', $tweet->id)
+            ->accessCheck(FALSE)
+            ->execute();
+
+          if (empty($nids)) {
+            $this->createNode($tweet, $endpoint, $query['query']);
+          }
         }
       }
     }
