@@ -5,11 +5,33 @@
  * Code for the get_tweets module.
  */
 
+use Drupal\node\NodeInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
 /**
  * Implements hook_cron().
  */
 function get_tweets_cron() {
   \Drupal::service('get_tweets.base')->runAll();
+}
+
+/**
+ * Implementation of hook_redirect_node_view().
+ */
+function get_tweets_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  $node = \Drupal::routeMatch()->getParameter('node');
+  if ($node instanceof NodeInterface && $node->bundle() == 'tweet') {
+    $url = vsprintf('https://twitter.com/%s/status/%s', [
+      $node->field_tweet_author->title,
+      $node->field_tweet_id->value,
+    ]);
+
+    $response = new RedirectResponse($url);
+    $response->send();
+    return;
+  }
 }
 
 /**
