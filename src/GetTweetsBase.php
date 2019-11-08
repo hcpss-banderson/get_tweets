@@ -151,8 +151,8 @@ class GetTweetsBase {
       'type' => 'tweet',
       'field_tweet_id' => $tweet->id,
       'field_tweet_author' => [
-        'uri' => $tweet_type == 'statuses/user_timeline' ? 'https://twitter.com/' . $tweet->user->screen_name : 'https://twitter.com/search?q=' . str_replace('#', '%23', $query_name),
-        'title' => $tweet_type == 'statuses/user_timeline' ? $tweet->user->screen_name : $query_name,
+        'uri' => 'https://twitter.com/' . $tweet->user->screen_name,
+        'title' => $tweet->user->screen_name,
       ],
       'title' => 'Tweet #' . $tweet->id,
       'field_tweet_content' => [
